@@ -41,7 +41,7 @@ var insertFunc = func(db *sql.DB, entry *logrus.Entry) error {
 		return err
 	}
 
-	_, err = db.Exec("INSERT INTO logs(level, message, message_data, created_at) VALUES (@p1,@p2,@p3,@p4);", entry.Level, entry.Message, string(jsonData), entry.Time)
+	_, err = db.Exec("INSERT INTO logs(level, message, message_data, created_at) VALUES (?,?,?,?);", entry.Level, entry.Message, string(jsonData), entry.Time)
 	return err
 }
 
@@ -51,7 +51,7 @@ var asyncInsertFunc = func(txn *sql.Tx, entry *logrus.Entry) error {
 		return err
 	}
 
-	_, err = txn.Exec("INSERT INTO logs(level, message, message_data, created_at) VALUES (@p1,@p2,@p3,@p4);", entry.Level, entry.Message, string(jsonData), entry.Time)
+	_, err = txn.Exec("INSERT INTO logs(level, message, message_data, created_at) VALUES (?,?,?,?);", entry.Level, entry.Message, string(jsonData), entry.Time)
 	return err
 }
 
