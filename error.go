@@ -1,4 +1,4 @@
-package pglogrus
+package mssqlogrus
 
 import "encoding/json"
 

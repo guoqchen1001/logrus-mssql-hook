@@ -1,4 +1,4 @@
-package pglogrus
+package mssqlogrus
 
 import (
 	"database/sql"
@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+
 )
 
 // Set pglogrus.BufSize = <value> _before_ calling NewHook
@@ -22,7 +23,7 @@ type Hook struct {
 	db         *sql.DB
 	mu         sync.RWMutex
 	InsertFunc func(*sql.DB, *logrus.Entry) error
-	filters    []filter
+	filters    []Filter
 }
 
 type AsyncHook struct {
@@ -41,7 +42,7 @@ var insertFunc = func(db *sql.DB, entry *logrus.Entry) error {
 		return err
 	}
 
-	_, err = db.Exec("INSERT INTO logs(level, message, message_data, created_at) VALUES ($1,$2,$3,$4);", entry.Level, entry.Message, jsonData, entry.Time)
+	_, err = db.Exec("INSERT INTO logs(level, message, message_data, created_at) VALUES (@p1,@p2,@p3,@p4);", entry.Level, entry.Message, string(jsonData), entry.Time)
 	return err
 }
 
@@ -51,11 +52,11 @@ var asyncInsertFunc = func(txn *sql.Tx, entry *logrus.Entry) error {
 		return err
 	}
 
-	_, err = txn.Exec("INSERT INTO logs(level, message, message_data, created_at) VALUES ($1,$2,$3,$4);", entry.Level, entry.Message, jsonData, entry.Time)
+	_, err = txn.Exec("INSERT INTO logs(level, message, message_data, created_at) VALUES (@p1,@p2,@p3,@p4);", entry.Level, entry.Message, string(jsonData), entry.Time)
 	return err
 }
 
-type filter func(*logrus.Entry) *logrus.Entry
+type Filter func(*logrus.Entry) *logrus.Entry
 
 // NewHook creates a PGHook to be added to an instance of logger.
 func NewHook(db *sql.DB, extra map[string]interface{}) *Hook {
@@ -63,7 +64,7 @@ func NewHook(db *sql.DB, extra map[string]interface{}) *Hook {
 		Extra:      extra,
 		db:         db,
 		InsertFunc: insertFunc,
-		filters:    []filter{},
+		filters:    []Filter{},
 	}
 }
 
@@ -244,12 +245,12 @@ func (hook *Hook) Close() error {
 	return hook.db.Close()
 }
 
-//AddFilter adds filter that can modify or ignore entry.
-func (hook *Hook) AddFilter(fn filter) {
+//AddFilter adds Filter that can modify or ignore entry.
+func (hook *Hook) AddFilter(fn Filter) {
 	hook.filters = append(hook.filters, fn)
 }
 
-func blackListFilter(blacklist []string) filter {
+func blackListFilter(blacklist []string) Filter {
 	return func(entry *logrus.Entry) *logrus.Entry {
 		for _, name := range blacklist {
 			delete(entry.Data, name)

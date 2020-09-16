@@ -1,7 +1,7 @@
 CREATE TABLE logs (
-    id SERIAL,
+    id int identity(1,1),
     level smallint NOT NULL,
-    message text NOT NULL,
-    message_data json NOT NULL,
-    created_at timestamp with time zone NOT NULL
+    message nvarchar(max) NOT NULL,
+    message_data nvarchar(max) NOT NULL,
+    created_at DateTime  NOT NULL
 );

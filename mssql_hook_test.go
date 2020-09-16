@@ -1,4 +1,4 @@
-package pglogrus
+package mssqlogrus_test
 
 import (
 	"database/sql"
@@ -10,13 +10,14 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/lib/pq"
+	_ "github.com/denisenkom/go-mssqldb"
 
+	"github.com/guoqchen1001/logrus-mssql-hook"
 	"github.com/sirupsen/logrus"
 )
 
 func TestHooks(t *testing.T) {
-	db, err := sql.Open("postgres", "user=postgres dbname=postgres host=postgres sslmode=disable")
+	db, err := sql.Open("sqlserver", "sqlserver://sa:123@localhost?database=kmshop_952488&encrypt=disable")
 	if err != nil {
 		t.Fatal("Can't connect to postgresql test database:", err)
 	}
@@ -25,10 +26,10 @@ func TestHooks(t *testing.T) {
 	hooks := map[string]interface {
 		logrus.Hook
 		Blacklist([]string)
-		AddFilter(filter)
+		AddFilter(filter mssqlogrus.Filter)
 	}{
-		"Hook":       NewHook(db, map[string]interface{}{}),
-		"Async Hook": NewAsyncHook(db, map[string]interface{}{}),
+		"Hook":       mssqlogrus.NewHook(db, map[string]interface{}{}),
+		"Async Hook": mssqlogrus.NewAsyncHook(db, map[string]interface{}{}),
 	}
 
 	for name, hook := range hooks {
@@ -47,7 +48,7 @@ func TestHooks(t *testing.T) {
 			log.Level = logrus.DebugLevel
 			log.Hooks.Add(hook)
 
-			if h, ok := hook.(*AsyncHook); ok {
+			if h, ok := hook.(*mssqlogrus.AsyncHook); ok {
 				h.FlushEvery(100 * time.Millisecond)
 			}
 
@@ -111,13 +112,13 @@ func TestHooks(t *testing.T) {
 			}
 			wg.Wait()
 
-			if h, ok := hook.(*AsyncHook); ok {
+			if h, ok := hook.(*mssqlogrus.AsyncHook); ok {
 				h.Flush()
 			}
 
 			// Check results in DB
 			var (
-				data       *json.RawMessage
+				data       string
 				created_at time.Time
 				level      logrus.Level
 				message    string
@@ -166,7 +167,9 @@ func TestHooks(t *testing.T) {
 				}
 
 				var storedData map[string]interface{}
-				if err := json.Unmarshal(*data, &storedData); err != nil {
+
+				bData := []byte(data)
+				if err := json.Unmarshal(bData, &storedData); err != nil {
 					t.Fatal("Can't unmarshal data from DB: ", err)
 				}
 				if !reflect.DeepEqual(expectedData, storedData) {
