@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-
 )
 
 // Set pglogrus.BufSize = <value> _before_ calling NewHook
@@ -58,7 +57,7 @@ var asyncInsertFunc = func(txn *sql.Tx, entry *logrus.Entry) error {
 
 type Filter func(*logrus.Entry) *logrus.Entry
 
-// NewHook creates a PGHook to be added to an instance of logger.
+// NewHook creates a MssqlHook to be added to an instance of logger.
 func NewHook(db *sql.DB, extra map[string]interface{}) *Hook {
 	return &Hook{
 		Extra:      extra,
